@@ -1,0 +1,177 @@
+import os
+import sqlite3
+
+from dotenv import load_dotenv
+from flask import Flask, Response, request
+from openai import OpenAI, OpenAIError
+from twilio.twiml.voice_response import Gather, VoiceResponse
+
+load_dotenv()
+
+app = Flask(__name__)
+
+DB_PATH = os.environ.get("CHAT_DB_PATH") or (
+    "/tmp/chat.db" if os.environ.get("VERCEL") else "chat.db"
+)
+MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
+SYSTEM_PROMPT = (
+    "You are a helpful phone call assistant. Keep responses concise, natural, "
+    "and suitable for being read aloud."
+)
+
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+
+def get_current_call_sid(conn):
+    row = conn.execute("SELECT value FROM meta WHERE key = 'call_sid'").fetchone()
+    return row["value"] if row else None
+
+
+def set_current_call_sid(conn, call_sid):
+    conn.execute(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES ('call_sid', ?)",
+        (call_sid,),
+    )
+    conn.commit()
+
+
+def reset_conversation(conn):
+    conn.execute("DELETE FROM messages")
+    conn.commit()
+
+
+def ensure_call_context(call_sid):
+    if not call_sid:
+        return
+    conn = get_db()
+    try:
+        init_db(conn)
+        current_call_sid = get_current_call_sid(conn)
+        if current_call_sid != call_sid:
+            reset_conversation(conn)
+            set_current_call_sid(conn, call_sid)
+    finally:
+        conn.close()
+
+
+def save_message(role, content):
+    conn = get_db()
+    try:
+        init_db(conn)
+        conn.execute(
+            "INSERT INTO messages (role, content) VALUES (?, ?)",
+            (role, content),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def load_messages():
+    conn = get_db()
+    try:
+        init_db(conn)
+        rows = conn.execute(
+            "SELECT role, content FROM messages ORDER BY id ASC"
+        ).fetchall()
+    finally:
+        conn.close()
+    return [{"role": row["role"], "content": row["content"]} for row in rows]
+
+
+def generate_reply(user_text):
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return "The assistant is not configured right now. Please try again later."
+
+    try:
+        client = OpenAI(api_key=api_key)
+        save_message("user", user_text)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        messages.extend(load_messages())
+        completion = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+        )
+        reply = completion.choices[0].message.content.strip()
+        if reply:
+            save_message("assistant", reply)
+        return reply or "Sorry, I don't have a response right now."
+    except (OpenAIError, sqlite3.Error):
+        return "Sorry, I'm having trouble right now. Please try again."
+
+
+def build_gather():
+    return Gather(
+        input="speech",
+        action="/voice/respond",
+        method="POST",
+        speech_timeout="auto",
+    )
+
+
+@app.route("/voice", methods=["POST"])
+def voice():
+    call_sid = request.form.get("CallSid")
+    ensure_call_context(call_sid)
+
+    resp = VoiceResponse()
+    gather = build_gather()
+    gather.say(
+        "Hello! Thanks for calling. How can I help you today?",
+        voice="alice",
+    )
+    resp.append(gather)
+    resp.redirect("/voice", method="POST")
+    return Response(str(resp), mimetype="text/xml")
+
+
+@app.route("/voice/respond", methods=["POST"])
+def voice_respond():
+    call_sid = request.form.get("CallSid")
+    ensure_call_context(call_sid)
+
+    user_text = request.form.get("SpeechResult", "").strip()
+    resp = VoiceResponse()
+    if not user_text:
+        resp.say("Sorry, I didn't catch that. Please say that again.", voice="alice")
+        resp.redirect("/voice", method="POST")
+        return Response(str(resp), mimetype="text/xml")
+
+    reply = generate_reply(user_text)
+    resp.say(reply, voice="alice")
+    gather = build_gather()
+    gather.say("Anything else I can help with?", voice="alice")
+    resp.append(gather)
+    resp.redirect("/voice", method="POST")
+    return Response(str(resp), mimetype="text/xml")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

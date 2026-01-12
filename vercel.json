@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/voice",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/voice/(.*)",
+      "destination": "/api/index.py"
+    }
+  ]
+}
