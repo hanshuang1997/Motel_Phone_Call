@@ -1,0 +1,71 @@
+date,room_number,room_type,status,booking_id,guest_name,check_in,check_out,channel,nightly_rate_nzd,notes
+2026-01-19,101,Studio Queen,Occupied,B0001,Alice Chen,2026-01-19,2026-01-21,Direct,145,Late check-in ~10pm
+2026-01-19,102,Studio Twin,Occupied,B0002,Tom Williams,2026-01-19,2026-01-20,Booking.com,135,
+2026-01-19,103,Studio Queen,OutOfService,,,,,,,Maintenance (bathroom repair)
+2026-01-19,104,Studio Queen,Available,,,,,,,
+2026-01-19,105,Studio Twin,Available,,,,,,,
+2026-01-19,106,Studio Queen,Available,,,,,,,
+2026-01-19,201,1BR,Available,,,,,,,
+2026-01-19,202,1BR,Available,,,,,,,
+2026-01-19,203,1BR,Available,,,,,,,
+2026-01-19,301,2BR,Available,,,,,,,
+2026-01-20,101,Studio Queen,Occupied,B0001,Alice Chen,2026-01-19,2026-01-21,Direct,145,Late check-in ~10pm
+2026-01-20,102,Studio Twin,Available,,,,,,,
+2026-01-20,103,Studio Queen,OutOfService,,,,,,,Maintenance (bathroom repair)
+2026-01-20,104,Studio Queen,Available,,,,,,,
+2026-01-20,105,Studio Twin,Available,,,,,,,
+2026-01-20,106,Studio Queen,Available,,,,,,,
+2026-01-20,201,1BR,Occupied,B0003,Mei Li,2026-01-20,2026-01-23,Phone,190,Needs cot
+2026-01-20,202,1BR,Available,,,,,,,
+2026-01-20,203,1BR,Available,,,,,,,
+2026-01-20,301,2BR,Available,,,,,,,
+2026-01-21,101,Studio Queen,Available,,,,,,,
+2026-01-21,102,Studio Twin,Available,,,,,,,
+2026-01-21,103,Studio Queen,OutOfService,,,,,,,Maintenance (bathroom repair)
+2026-01-21,104,Studio Queen,Available,,,,,,,
+2026-01-21,105,Studio Twin,Available,,,,,,,
+2026-01-21,106,Studio Queen,Available,,,,,,,
+2026-01-21,201,1BR,Occupied,B0003,Mei Li,2026-01-20,2026-01-23,Phone,190,Needs cot
+2026-01-21,202,1BR,Occupied,B0005,Sarah Brown,2026-01-21,2026-01-25,Direct,210,Anniversary trip
+2026-01-21,203,1BR,Available,,,,,,,
+2026-01-21,301,2BR,Available,,,,,,,
+2026-01-22,101,Studio Queen,Available,,,,,,,
+2026-01-22,102,Studio Twin,Available,,,,,,,
+2026-01-22,103,Studio Queen,Available,,,,,,,
+2026-01-22,104,Studio Queen,Occupied,B0006,Jack Nguyen,2026-01-22,2026-01-23,Walk-in,160,Paid cash
+2026-01-22,105,Studio Twin,Available,,,,,,,
+2026-01-22,106,Studio Queen,Available,,,,,,,
+2026-01-22,201,1BR,Occupied,B0003,Mei Li,2026-01-20,2026-01-23,Phone,190,Needs cot
+2026-01-22,202,1BR,Occupied,B0005,Sarah Brown,2026-01-21,2026-01-25,Direct,210,Anniversary trip
+2026-01-22,203,1BR,Available,,,,,,,
+2026-01-22,301,2BR,Occupied,B0007,Emma Taylor,2026-01-22,2026-01-26,Booking.com,275,Requires parking
+2026-01-23,101,Studio Queen,Available,,,,,,,
+2026-01-23,102,Studio Twin,Available,,,,,,,
+2026-01-23,103,Studio Queen,Available,,,,,,,
+2026-01-23,104,Studio Queen,Available,,,,,,,
+2026-01-23,105,Studio Twin,Occupied,B0008,Liam O'Connor,2026-01-23,2026-01-24,Phone,155,Charged 1 night
+2026-01-23,106,Studio Queen,Available,,,,,,,
+2026-01-23,201,1BR,Available,,,,,,,
+2026-01-23,202,1BR,Occupied,B0005,Sarah Brown,2026-01-21,2026-01-25,Direct,210,Anniversary trip
+2026-01-23,203,1BR,Occupied,B0009,Hana Suzuki,2026-01-23,2026-01-24,Direct,205,Quiet room
+2026-01-23,301,2BR,Occupied,B0007,Emma Taylor,2026-01-22,2026-01-26,Booking.com,275,Requires parking
+2026-01-24,101,Studio Queen,Available,,,,,,,
+2026-01-24,102,Studio Twin,Available,,,,,,,
+2026-01-24,103,Studio Queen,Available,,,,,,,
+2026-01-24,104,Studio Queen,Available,,,,,,,
+2026-01-24,105,Studio Twin,Available,,,,,,,
+2026-01-24,106,Studio Queen,Occupied,B0011,Isla Martin,2026-01-24,2026-01-25,Direct,175,
+2026-01-24,201,1BR,Available,,,,,,,
+2026-01-24,202,1BR,Occupied,B0005,Sarah Brown,2026-01-21,2026-01-25,Direct,210,Anniversary trip
+2026-01-24,203,1BR,Available,,,,,,,
+2026-01-24,301,2BR,Occupied,B0007,Emma Taylor,2026-01-22,2026-01-26,Booking.com,275,Requires parking
+2026-01-25,101,Studio Queen,Available,,,,,,,
+2026-01-25,102,Studio Twin,Available,,,,,,,
+2026-01-25,103,Studio Queen,Available,,,,,,,
+2026-01-25,104,Studio Queen,Available,,,,,,,
+2026-01-25,105,Studio Twin,Available,,,,,,,
+2026-01-25,106,Studio Queen,Available,,,,,,,
+2026-01-25,201,1BR,Available,,,,,,,
+2026-01-25,202,1BR,Available,,,,,,,
+2026-01-25,203,1BR,Available,,,,,,,
+2026-01-25,301,2BR,Occupied,B0007,Emma Taylor,2026-01-22,2026-01-26,Booking.com,275,Requires parking

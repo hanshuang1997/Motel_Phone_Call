@@ -6,6 +6,8 @@ from flask import Flask, Response, request
 from openai import OpenAI, OpenAIError
 from twilio.twiml.voice_response import Gather, VoiceResponse
 
+from booking_context import build_booking_context
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -13,12 +15,21 @@ app = Flask(__name__)
 DB_PATH = os.environ.get("CHAT_DB_PATH") or (
     "/tmp/chat.db" if os.environ.get("VERCEL") else "chat.db"
 )
+BOOKING_CSV_PATH = os.environ.get("BOOKING_CSV_PATH") or os.path.join(
+    os.path.dirname(__file__), "motel_week_availability.csv"
+)
+try:
+    BOOKING_TOP_K = int(os.environ.get("BOOKING_TOP_K", "6"))
+except ValueError:
+    BOOKING_TOP_K = 6
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 SYSTEM_PROMPT = (
     "You are a helpful phone call assistant for a motel. Keep responses concise, natural, "
-    "the main goal is to guide for hotel bookings over the phone and any special requests."
-    "if random questions asked, try to bring the topic back to hotel bookings and requests,"
-    "do not generate super long sentences, and response is suitable for being read aloud."
+    "the main goal is to guide for hotel bookings over the phone and any special requests. "
+    "If random questions are asked, try to bring the topic back to hotel bookings and requests. "
+    "Use the booking data provided in system context to answer availability questions. "
+    "If information is missing or unclear, ask a brief follow-up or say you do not have it. "
+    "Do not generate super long sentences, and response is suitable for being read aloud."
 )
 
 
@@ -116,6 +127,11 @@ def generate_reply(user_text):
         client = OpenAI(api_key=api_key)
         save_message("user", user_text)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        booking_context = build_booking_context(
+            user_text, BOOKING_CSV_PATH, max_rows=BOOKING_TOP_K
+        )
+        if booking_context:
+            messages.append({"role": "system", "content": booking_context})
         messages.extend(load_messages())
         completion = client.chat.completions.create(
             model=MODEL,
@@ -172,7 +188,6 @@ def voice_respond():
     reply = generate_reply(user_text)
     resp.say(reply, voice="Polly.Joanna")
     gather = build_gather()
-    gather.say("Anything else I can help with?", voice="Polly.Joanna")
     resp.append(gather)
     resp.redirect("/voice", method="POST")
     return Response(str(resp), mimetype="text/xml")
