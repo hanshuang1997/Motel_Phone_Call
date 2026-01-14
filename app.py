@@ -2,6 +2,8 @@ import os
 import sqlite3
 
 from dotenv import load_dotenv
+import re
+
 from flask import Flask, Response, request
 from openai import OpenAI, OpenAIError
 from twilio.twiml.voice_response import Gather, VoiceResponse
@@ -20,18 +22,75 @@ BOOKING_CSV_PATH = os.environ.get("BOOKING_CSV_PATH") or os.path.join(
 )
 BOOKING_DB_PATH = os.environ.get("BOOKING_DB_PATH")
 try:
-    BOOKING_TOP_K = int(os.environ.get("BOOKING_TOP_K", "6"))
+    BOOKING_TOP_K = int(os.environ.get("BOOKING_TOP_K", "10"))
 except ValueError:
-    BOOKING_TOP_K = 6
+    BOOKING_TOP_K = 10
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 SYSTEM_PROMPT = (
     "You are a helpful phone call assistant for a motel. Keep responses concise, natural, "
     "the main goal is to guide for hotel bookings over the phone and any special requests. "
     "If random questions are asked, try to bring the topic back to hotel bookings and requests. "
     "Use the booking data provided in system context to answer availability questions. "
-    "If information is missing or unclear, ask a brief follow-up or say you do not have it. "
+    "When asked for counts or availability, count rows explicitly from the provided context "
+    "and do not guess. If information is missing or unclear, ask a brief follow-up or say you do not have it. "
     "Do not generate super long sentences, and response is suitable for being read aloud."
 )
+AVAILABILITY_KEYWORDS = {
+    "available",
+    "availability",
+    "book",
+    "booking",
+    "check",
+    "checkin",
+    "checkout",
+    "date",
+    "night",
+    "occupancy",
+    "occupied",
+    "reserve",
+    "reservation",
+    "room",
+    "rooms",
+    "stay",
+    "today",
+    "tomorrow",
+    "tonight",
+    "next",
+    "vacant",
+    "vacancy",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "jan",
+    "january",
+    "feb",
+    "february",
+    "mar",
+    "march",
+    "apr",
+    "april",
+    "may",
+    "jun",
+    "june",
+    "jul",
+    "july",
+    "aug",
+    "august",
+    "sep",
+    "sept",
+    "september",
+    "oct",
+    "october",
+    "nov",
+    "november",
+    "dec",
+    "december",
+}
+DATE_RE = re.compile(r"\b20\d{2}-\d{1,2}-\d{1,2}\b")
 
 
 def get_db():
@@ -107,6 +166,33 @@ def save_message(role, content):
         conn.close()
 
 
+def set_pending_user_text(content):
+    conn = get_db()
+    try:
+        init_db(conn)
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('pending_user_text', ?)",
+            (content,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def pop_pending_user_text():
+    conn = get_db()
+    try:
+        init_db(conn)
+        row = conn.execute(
+            "SELECT value FROM meta WHERE key = 'pending_user_text'"
+        ).fetchone()
+        conn.execute("DELETE FROM meta WHERE key = 'pending_user_text'")
+        conn.commit()
+    finally:
+        conn.close()
+    return row["value"] if row else ""
+
+
 def load_messages():
     conn = get_db()
     try:
@@ -119,27 +205,40 @@ def load_messages():
     return [{"role": row["role"], "content": row["content"]} for row in rows]
 
 
-def generate_reply(user_text):
+def should_use_booking_context(user_text):
+    if not user_text:
+        return False
+    text = user_text.lower()
+    tokens = set(re.findall(r"[a-z0-9]+", text))
+    if tokens & AVAILABILITY_KEYWORDS:
+        return True
+    return DATE_RE.search(text) is not None
+
+
+def generate_reply(user_text, save_user=True):
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         return "The assistant is not configured right now. Please try again later."
 
     try:
         client = OpenAI(api_key=api_key)
-        save_message("user", user_text)
+        if save_user and user_text:
+            save_message("user", user_text)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        booking_context = build_booking_context(
-            user_text,
-            BOOKING_CSV_PATH,
-            max_rows=BOOKING_TOP_K,
-            db_path=BOOKING_DB_PATH,
-        )
-        if booking_context:
-            messages.append({"role": "system", "content": booking_context})
+        if should_use_booking_context(user_text):
+            booking_context = build_booking_context(
+                user_text,
+                BOOKING_CSV_PATH,
+                max_rows=BOOKING_TOP_K,
+                db_path=BOOKING_DB_PATH,
+            )
+            if booking_context:
+                messages.append({"role": "system", "content": booking_context})
         messages.extend(load_messages())
         completion = client.chat.completions.create(
             model=MODEL,
             messages=messages,
+            temperature=0,
         )
         reply = completion.choices[0].message.content.strip()
         if reply:
@@ -189,7 +288,40 @@ def voice_respond():
         resp.redirect("/voice", method="POST")
         return Response(str(resp), mimetype="text/xml")
 
-    reply = generate_reply(user_text)
+    if should_use_booking_context(user_text):
+        save_message("user", user_text)
+        set_pending_user_text(user_text)
+        resp.say(
+            "Thanks, give me a moment while I check the right room for you.",
+            voice="Polly.Joanna",
+        )
+        resp.redirect("/voice/answer", method="POST")
+        return Response(str(resp), mimetype="text/xml")
+
+    reply = generate_reply(user_text, save_user=True)
+    resp.say(reply, voice="Polly.Joanna")
+    gather = build_gather()
+    resp.append(gather)
+    resp.redirect("/voice", method="POST")
+    return Response(str(resp), mimetype="text/xml")
+
+
+@app.route("/voice/answer", methods=["POST"])
+def voice_answer():
+    call_sid = request.form.get("CallSid")
+    ensure_call_context(call_sid)
+
+    user_text = pop_pending_user_text()
+    resp = VoiceResponse()
+    if not user_text:
+        resp.say(
+            "Sorry, I didn't catch that. Please say that again.",
+            voice="Polly.Joanna",
+        )
+        resp.redirect("/voice", method="POST")
+        return Response(str(resp), mimetype="text/xml")
+
+    reply = generate_reply(user_text, save_user=False)
     resp.say(reply, voice="Polly.Joanna")
     gather = build_gather()
     resp.append(gather)
