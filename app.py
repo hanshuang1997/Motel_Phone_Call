@@ -7,7 +7,7 @@ from openai import OpenAI, OpenAIError
 from twilio.twiml.voice_response import Gather, VoiceResponse
 
 from booking_context import build_booking_context
-
+# This file depends on booking_context.py for building booking context from CSV
 load_dotenv()
 
 app = Flask(__name__)
