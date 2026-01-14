@@ -18,6 +18,7 @@ DB_PATH = os.environ.get("CHAT_DB_PATH") or (
 BOOKING_CSV_PATH = os.environ.get("BOOKING_CSV_PATH") or os.path.join(
     os.path.dirname(__file__), "motel_week_availability.csv"
 )
+BOOKING_DB_PATH = os.environ.get("BOOKING_DB_PATH")
 try:
     BOOKING_TOP_K = int(os.environ.get("BOOKING_TOP_K", "6"))
 except ValueError:
@@ -128,7 +129,10 @@ def generate_reply(user_text):
         save_message("user", user_text)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         booking_context = build_booking_context(
-            user_text, BOOKING_CSV_PATH, max_rows=BOOKING_TOP_K
+            user_text,
+            BOOKING_CSV_PATH,
+            max_rows=BOOKING_TOP_K,
+            db_path=BOOKING_DB_PATH,
         )
         if booking_context:
             messages.append({"role": "system", "content": booking_context})
