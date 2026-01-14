@@ -13,10 +13,12 @@ app = Flask(__name__)
 DB_PATH = os.environ.get("CHAT_DB_PATH") or (
     "/tmp/chat.db" if os.environ.get("VERCEL") else "chat.db"
 )
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
+MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 SYSTEM_PROMPT = (
-    "You are a helpful phone call assistant. Keep responses concise, natural, "
-    "and suitable for being read aloud."
+    "You are a helpful phone call assistant for a motel. Keep responses concise, natural, "
+    "the main goal is to guide for hotel bookings over the phone and any special requests."
+    "if random questions asked, try to bring the topic back to hotel bookings and requests,"
+    "do not generate super long sentences, and response is suitable for being read aloud."
 )
 
 
@@ -144,8 +146,8 @@ def voice():
     resp = VoiceResponse()
     gather = build_gather()
     gather.say(
-        "Hello! Thanks for calling. How can I help you today?",
-        voice="alice",
+        "Hello! Thanks for calling. Welcome to superstar motel. How can I help you today?",
+        voice="Polly.Joanna",
     )
     resp.append(gather)
     resp.redirect("/voice", method="POST")
@@ -160,14 +162,17 @@ def voice_respond():
     user_text = request.form.get("SpeechResult", "").strip()
     resp = VoiceResponse()
     if not user_text:
-        resp.say("Sorry, I didn't catch that. Please say that again.", voice="alice")
+        resp.say(
+            "Sorry, I didn't catch that. Please say that again.",
+            voice="Polly.Joanna",
+        )
         resp.redirect("/voice", method="POST")
         return Response(str(resp), mimetype="text/xml")
 
     reply = generate_reply(user_text)
-    resp.say(reply, voice="alice")
+    resp.say(reply, voice="Polly.Joanna")
     gather = build_gather()
-    gather.say("Anything else I can help with?", voice="alice")
+    gather.say("Anything else I can help with?", voice="Polly.Joanna")
     resp.append(gather)
     resp.redirect("/voice", method="POST")
     return Response(str(resp), mimetype="text/xml")
