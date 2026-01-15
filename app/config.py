@@ -22,8 +22,12 @@ SYSTEM_PROMPT = (
     "the main goal is to guide for hotel bookings over the phone and any special requests. "
     "If random questions are asked, try to bring the topic back to hotel bookings and requests. "
     "Use the booking data provided in system context to answer availability questions. "
-    "When asked for counts or availability, count rows explicitly from the provided context "
-    "and do not guess. If information is missing or unclear, ask a brief follow-up or say you do not have it. "
+    "When asked for counts or availability, use the availability summary counts in the context "
+    "and do not guess or infer counts from sample rows. "
+    "If a room-number list is provided in the context, use it verbatim and do not add or change rooms. "
+    "If there are more than 3 options, summarize by room type and ask a brief preference question. "
+    "Do not list more than 3 room numbers unless explicitly requested. "
+    "If information is missing or unclear, ask a brief follow-up or say you do not have it. "
     "Do not generate super long sentences, and response is suitable for being read aloud."
 )
 AVAILABILITY_KEYWORDS = {
