@@ -121,7 +121,12 @@ def build_booking_context(query, csv_path, max_rows=5, db_path=None):
                 "- date: {date}, room_number: {room_number}, room_type: {room_type}, "
                 "status: {status}, check_in: {check_in}, check_out: {check_out}, "
                 "guest_name: {guest_name}, booking_id: {booking_id}, "
-                "nightly_rate_nzd: {nightly_rate_nzd}, notes: {notes}".format(
+                "nightly_rate_nzd: {nightly_rate_nzd}, notes: {notes}, "
+                "floor: {floor}, bed_setup: {bed_setup}, max_guests: {max_guests}, "
+                "room_size_sqm: {room_size_sqm}, kitchenette: {kitchenette}, "
+                "amenities: {amenities}, view: {view}, accessible: {accessible}, "
+                "room_type_description: {room_type_description}, rate_source: {rate_source}, "
+                "pricing_reason: {pricing_reason}".format(
                     date=row.get("date", ""),
                     room_number=row.get("room_number", ""),
                     room_type=row.get("room_type", ""),
@@ -132,6 +137,17 @@ def build_booking_context(query, csv_path, max_rows=5, db_path=None):
                     booking_id=row.get("booking_id", ""),
                     nightly_rate_nzd=row.get("nightly_rate_nzd", ""),
                     notes=row.get("notes", ""),
+                    floor=row.get("floor", ""),
+                    bed_setup=row.get("bed_setup", ""),
+                    max_guests=row.get("max_guests", ""),
+                    room_size_sqm=row.get("room_size_sqm", ""),
+                    kitchenette=row.get("kitchenette", ""),
+                    amenities=row.get("amenities", ""),
+                    view=row.get("view", ""),
+                    accessible=row.get("accessible", ""),
+                    room_type_description=row.get("room_type_description", ""),
+                    rate_source=row.get("rate_source", ""),
+                    pricing_reason=row.get("pricing_reason", ""),
                 )
             )
     return "\n".join(lines)
