@@ -3,7 +3,7 @@ from twilio.twiml.voice_response import Gather, VoiceResponse
 
 from ..assistant import generate_reply, should_use_booking_context
 from ..call_state import ensure_call_context, pop_pending_user_text, set_pending_user_text
-from ..db import save_message
+from ..db import get_last_assistant_message, save_message
 
 voice_bp = Blueprint("voice", __name__)
 
@@ -29,12 +29,38 @@ _END_CALL_PHRASES = (
     "not interested",
 )
 
+_REPEAT_PHRASES = (
+    "say again",
+    "say that again",
+    "can you say again",
+    "could you say again",
+    "repeat that",
+    "repeat it",
+    "can you repeat",
+    "could you repeat",
+    "i did not hear",
+    "i didn't hear",
+    "i did not catch",
+    "i didn't catch",
+    "what did you say",
+    "come again",
+    "pardon",
+    "sorry can you repeat",
+)
+
 
 def should_end_call(user_text):
     if not user_text:
         return False
     lowered = user_text.lower()
     return any(phrase in lowered for phrase in _END_CALL_PHRASES)
+
+
+def should_repeat(user_text):
+    if not user_text:
+        return False
+    lowered = user_text.lower()
+    return any(phrase in lowered for phrase in _REPEAT_PHRASES)
 
 
 def build_gather():
@@ -85,11 +111,21 @@ def voice_respond():
         resp.hangup()
         return Response(str(resp), mimetype="text/xml")
 
+    if should_repeat(user_text):
+        last_reply = get_last_assistant_message()
+        if not last_reply:
+            last_reply = "Sorry, I don't have that handy. Could you repeat your question?"
+        resp.say(last_reply, voice="Polly.Joanna")
+        gather = build_gather()
+        resp.append(gather)
+        resp.redirect("/voice", method="POST")
+        return Response(str(resp), mimetype="text/xml")
+
     if should_use_booking_context(user_text):
         save_message("user", user_text)
         set_pending_user_text(user_text)
         resp.say(
-            "Thanks, give me a moment while I check the right room for you.",
+            "Sure, let me check for you.",
             voice="Polly.Joanna",
         )
         resp.redirect("/voice/answer", method="POST")

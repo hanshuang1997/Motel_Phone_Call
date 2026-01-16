@@ -77,3 +77,16 @@ def load_messages():
     finally:
         conn.close()
     return [{"role": row["role"], "content": row["content"]} for row in rows]
+
+
+def get_last_assistant_message():
+    conn = get_db()
+    try:
+        init_db(conn)
+        row = conn.execute(
+            "SELECT content FROM messages WHERE role = ? ORDER BY id DESC LIMIT 1",
+            ("assistant",),
+        ).fetchone()
+    finally:
+        conn.close()
+    return row["content"] if row else ""
