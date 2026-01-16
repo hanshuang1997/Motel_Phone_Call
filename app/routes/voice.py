@@ -7,6 +7,35 @@ from ..db import save_message
 
 voice_bp = Blueprint("voice", __name__)
 
+_END_CALL_PHRASES = (
+    "thanks for your time",
+    "thank you for your time",
+    "goodbye",
+    "good bye",
+    "bye",
+    "see you",
+    "see ya",
+    "talk to you later",
+    "talk later",
+    "have a good day",
+    "have a nice day",
+    "thanks anyway",
+    "ok bye",
+    "okay bye",
+    "call you back",
+    "i will call back",
+    "i'll call back",
+    "maybe later",
+    "not interested",
+)
+
+
+def should_end_call(user_text):
+    if not user_text:
+        return False
+    lowered = user_text.lower()
+    return any(phrase in lowered for phrase in _END_CALL_PHRASES)
+
 
 def build_gather():
     return Gather(
@@ -48,6 +77,14 @@ def voice_respond():
         resp.redirect("/voice", method="POST")
         return Response(str(resp), mimetype="text/xml")
 
+    if should_end_call(user_text):
+        resp.say(
+            "Thanks for calling. Feel free to call again if you need anything else. Goodbye.",
+            voice="Polly.Joanna",
+        )
+        resp.hangup()
+        return Response(str(resp), mimetype="text/xml")
+
     if should_use_booking_context(user_text):
         save_message("user", user_text)
         set_pending_user_text(user_text)
@@ -79,6 +116,14 @@ def voice_answer():
             voice="Polly.Joanna",
         )
         resp.redirect("/voice", method="POST")
+        return Response(str(resp), mimetype="text/xml")
+
+    if should_end_call(user_text):
+        resp.say(
+            "Thanks for calling. Feel free to call again if you need anything else. Goodbye.",
+            voice="Polly.Joanna",
+        )
+        resp.hangup()
         return Response(str(resp), mimetype="text/xml")
 
     reply = generate_reply(user_text, save_user=False)
